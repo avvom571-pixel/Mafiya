@@ -108,7 +108,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
       const shuffled = [...keys].sort(() => Math.random() - 0.5);
 
       // Логика распределения ролей:
-      // 1 Мафия, 1 Комиссар (если >= 4 игроков), остальные — Мирные
+      // 1 Мафия, 1 Комиссар (если >= 2 игроков), остальные — Мирные
       const updates = {};
       
       shuffled.forEach((playerKey, index) => {
@@ -116,7 +116,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 
         if (index === 0) {
           assignedRole = 'мафия'; // Только 1-й игрок становится мафией
-        } else if (index === 1 && total >= 4) {
+        } else if (index === 1 && total >= 2) {
           assignedRole = 'комиссар'; // 2-й игрок комиссар (при 4+ игроках)
         }
 
@@ -132,14 +132,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 
   window.leaveGame = function() {
     set(myPlayerRef, null).then(() => {
-      window.location.href = 'start.html';
+      window.location.href = 'index.html';
     });
   };
 </script>
 </head>
 <body>
 <div class="header">
-<a href="start.html" class="logo">🎭 МАФИЯ</a>
+<a href="index.html" class="logo">🎭 МАФИЯ</a>
 <div class="code-box">
 <span>КОД:</span>
 <span id="roomCode">------</span>
