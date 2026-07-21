@@ -10,113 +10,99 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:32px;max-width:400px;width:90%;text-align:center}
 .icon{font-size:4rem;margin-bottom:8px}
 h1{color:#ffd700;font-size:2.2rem;letter-spacing:4px;margin-bottom:4px}
-.sub{color:#888;font-size:.9rem;margin-bottom:28px}
+.sub{color:#888;font-size:.9rem;margin-bottom:24px}
 
 .block{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;margin-bottom:14px}
 .block h3{color:#ffd700;font-size:1rem;margin-bottom:10px}
 .row{display:flex;gap:8px}
-input{flex:1;padding:12px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#ffd700;border-radius:8px;font-size:1rem;text-align:center;letter-spacing:3px;text-transform:uppercase}
-input::placeholder{color:#555;text-transform:none;letter-spacing:1px;font-size:.85rem}
+input{flex:1;padding:12px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#ffd700;border-radius:8px;font-size:1rem;text-align:center;letter-spacing:2px}
+input::placeholder{color:#555;letter-spacing:0;font-size:.85rem}
 .btn{padding:12px 20px;background:#ffd700;color:#0f0f1a;border:none;border-radius:8px;cursor:pointer;font-weight:bold;font-size:.9rem;transition:.2s;white-space:nowrap}
 .btn:hover{background:#ffaa00}
-.btn:active{transform:scale(0.97)}
 
 .or{color:#555;margin:12px 0;font-size:.8rem}
-
 .create-btn{display:block;width:100%;padding:14px;background:linear-gradient(45deg,#ffd700,#ff8c00);color:#0f0f1a;border:none;border-radius:10px;cursor:pointer;font-weight:bold;font-size:1rem;transition:.2s}
-.create-btn:hover{opacity:.9;transform:translateY(-2px)}
-.create-btn:active{transform:scale(0.97)}
-
-.help{color:#666;font-size:.8rem;margin-top:16px;cursor:pointer}
-.help:hover{color:#ffd700}
-
-/* Modal */
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:2000}
-.modal.on{display:flex}
-.modal-box{background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:24px;text-align:center;max-width:360px;width:90%}
-.modal-box h3{color:#ffd700;margin-bottom:10px}
-.modal-box p{color:#b0b0c0;font-size:.85rem;line-height:1.6;margin-bottom:14px;text-align:left}
-.modal-box button{padding:10px 24px;background:#ffd700;color:#0f0f1a;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:.85rem}
+.create-btn:hover{opacity:.9}
 </style>
+
+<!-- Подключение Firebase через CDN -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBTD1Y1Bx-dnpGW8vhPEooCQYfwwl1J7gc",
+    authDomain: "mafiya-f67b8.firebaseapp.com",
+    databaseURL: "https://mafiya-f67b8-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "mafiya-f67b8",
+    storageBucket: "mafiya-f67b8.firebasestorage.app",
+    messagingSenderId: "558213204051",
+    appId: "1:558213204051:web:b54966b94d8be66c16dea6"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window.joinGame = async function() {
+    const name = document.getElementById('nameIn').value.trim();
+    const code = document.getElementById('codeIn').value.trim().toUpperCase();
+
+    if (!name) return alert('Введите ваше имя!');
+    if (!code) return alert('Введите код комнаты!');
+
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, `rooms/${code}`));
+
+    if (snapshot.exists()) {
+      localStorage.setItem('mafiaName', name);
+      localStorage.setItem('mafiaRoom', code);
+      localStorage.setItem('mafiaHost', 'false');
+      window.location.href = 'coming.html';
+    } else {
+      alert('Комната с таким кодом не найдена!');
+    }
+  };
+
+  window.createGame = function() {
+    const name = document.getElementById('nameIn').value.trim();
+    if (!name) return alert('Введите ваше имя!');
+
+    const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+    set(ref(db, 'rooms/' + code), {
+      status: 'waiting',
+      created: Date.now()
+    }).then(() => {
+      localStorage.setItem('mafiaName', name);
+      localStorage.setItem('mafiaRoom', code);
+      localStorage.setItem('mafiaHost', 'true');
+      window.location.href = 'coming.html';
+    });
+  };
+</script>
 </head>
 <body>
 <div class="card">
 <div class="icon">🎭</div>
 <h1>МАФИЯ</h1>
-<p class="sub">Онлайн игра с друзьями</p>
+<p class="sub">Онлайн с друзьями</p>
+
+<div class="block">
+<h3>Ваш никнейм</h3>
+<input type="text" id="nameIn" placeholder="Введите имя" maxlength="12">
+</div>
 
 <div class="block">
 <h3>🔑 Войти в комнату</h3>
 <div class="row">
-<input type="text" id="code" placeholder="Введите код" maxlength="6">
-<button class="btn" id="joinBtn">ВОЙТИ</button>
+<input type="text" id="codeIn" placeholder="Код" maxlength="6">
+<button class="btn" onclick="joinGame()">ВОЙТИ</button>
 </div>
 </div>
 
 <div class="or">— или —</div>
 
-<button class="create-btn" id="createBtn">➕ Создать комнату</button>
-
-<p class="help" id="helpBtn">❓ Как играть?</p>
+<button class="create-btn" onclick="createGame()">➕ Создать новую комнату</button>
 </div>
-
-<div class="modal" id="helpModal">
-<div class="modal-box">
-<h3>📖 Правила Мафии</h3>
-<p>
-1. Создайте комнату или войдите по коду<br>
-2. Пригласите 4–16 друзей<br>
-3. Роли распределяются случайно<br>
-4. Днём обсуждайте и голосуйте<br>
-5. Ночью мафия убивает, доктор лечит, комиссар проверяет<br>
-6. Мирные побеждают, если найдут всех мафий!
-</p>
-<button onclick="document.getElementById('helpModal').classList.remove('on')">Понятно</button>
-</div>
-</div>
-
-<script>
-(function(){
-  var codeInput = document.getElementById('code');
-  var joinBtn = document.getElementById('joinBtn');
-  var createBtn = document.getElementById('createBtn');
-  var helpBtn = document.getElementById('helpBtn');
-
-  function goToLobby(room, isHost) {
-    localStorage.setItem('mafiaRoom', room);
-    localStorage.setItem('mafiaHost', isHost ? 'true' : 'false');
-    // Переход в лобби
-    window.location.href = 'coming.html';
-  }
-
-  joinBtn.addEventListener('click', function() {
-    var c = codeInput.value.trim().toUpperCase();
-    if(!c || c.length < 3) {
-      alert('Введите код комнаты (минимум 3 символа)');
-      codeInput.focus();
-      return;
-    }
-    goToLobby(c, false);
-  });
-
-  codeInput.addEventListener('keypress', function(e) {
-    if(e.key === 'Enter') joinBtn.click();
-  });
-
-  createBtn.addEventListener('click', function() {
-    var c = Math.random().toString(36).substring(2, 8).toUpperCase();
-    goToLobby(c, true);
-  });
-
-  helpBtn.addEventListener('click', function() {
-    document.getElementById('helpModal').classList.add('on');
-  });
-
-  // Close modal on backdrop click
-  document.getElementById('helpModal').addEventListener('click', function(e) {
-    if(e.target === this) this.classList.remove('on');
-  });
-})();
-</script>
 </body>
 </html>
