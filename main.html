@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мафия — Онлайн Игра</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a2e,#0f1623);min-height:100vh;color:#e0e0e0}
+.header{background:rgba(0,0,0,.5);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid rgba(255,215,0,.3);flex-wrap:wrap;gap:8px}
+.logo{color:#ffd700;font-size:1.1rem;font-weight:bold;text-decoration:none}
+.info{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.info-item{text-align:center}
+.info-item div:first-child{font-size:.65rem;color:#888;text-transform:uppercase}
+.info-item div:last-child{color:#ffd700;font-weight:bold;font-size:1rem}
+.timer{color:#ff6b6b;font-family:monospace;font-size:1.4rem;min-width:45px;text-align:center}
+.timer.warn{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+.layout{display:grid;grid-template-columns:1fr 240px;gap:14px;max-width:1100px;margin:0 auto;padding:14px}
+
+.phase{background:linear-gradient(90deg,rgba(255,215,0,.1),rgba(255,215,0,.2),rgba(255,215,0,.1));border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:14px;text-align:center;margin-bottom:10px}
+.phase h2{color:#ffd700;font-size:1.2rem;margin-bottom:4px}
+.phase p{color:#b0b0c0;font-size:.8rem}
+
+.table{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.seat{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.seat:hover{border-color:rgba(255,215,0,.3)}
+.seat.dead{opacity:.4;filter:grayscale(100%);cursor:default}
+.seat.sel{border-color:#ffd700;box-shadow:0 0 12px rgba(255,215,0,.2)}
+.seat-num{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:bold;margin:0 auto 5px;border:2px solid rgba(255,255,255,.15)}
+.seat-name{font-size:.8rem;font-weight:bold}
+.seat-status{font-size:.7rem;color:#888}
+.seat-votes{position:absolute;top:-5px;right:-5px;background:#ff6b6b;color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.7rem}
+.role-icon{position:absolute;top:4px;left:4px;font-size:.9rem}
+
+.actions{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin-top:8px}
+.actions h3{color:#ffd700;text-align:center;margin-bottom:10px;font-size:.95rem}
+.btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn{padding:10px 18px;border:2px solid;background:transparent;cursor:pointer;border-radius:6px;font-size:.8rem;transition:.2s}
+.btn.vote{border-color:#ffd700;color:#ffd700}
+.btn.vote:hover{background:#ffd700;color:#0f0f1a}
+.btn.kill{border-color:#ff6b6b;color:#ff6b6b;display:none}
+.btn.kill:hover{background:#ff6b6b;color:#fff}
+.btn.heal{border-color:#4ecdc4;color:#4ecdc4;display:none}
+.btn.heal:hover{background:#4ecdc4;color:#0f0f1a}
+.btn.check{border-color:#a78bfa;color:#a78bfa;display:none}
+.btn.check:hover{background:#a78bfa;color:#fff}
+.btn.guilty{border-color:#ff6b6b;color:#ff6b6b;display:none}
+.btn.guilty:hover{background:#ff6b6b;color:#fff}
+.btn.skip{border-color:#888;color:#888;display:none}
+.btn.skip:hover{background:#888;color:#fff}
+
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.role-card{background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,215,0,.05));border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:14px;text-align:center}
+.role-icon-big{font-size:2rem;margin-bottom:5px}
+.role-name{color:#ffd700;font-size:1rem;font-weight:bold;margin-bottom:3px}
+.role-desc{color:#b0b0c0;font-size:.75rem}
+
+.log{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;flex:1;min-height:100px}
+.log h3{color:#ffd700;font-size:.9rem;margin-bottom:8px}
+.log-entries{max-height:180px;overflow-y:auto;font-size:.75rem}
+.log-entry{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-entry .t{color:#888;font-size:.7rem}
+.log-entry.d{color:#ff6b6b}
+.log-entry.v{color:#ffd700}
+
+.chat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px}
+.chat h3{color:#ffd700;font-size:.9rem;margin-bottom:6px}
+.msgs{height:100px;overflow-y:auto;margin-bottom:6px;padding:4px;font-size:.75rem}
+.msg{padding:3px 0}
+.msg .who{color:#ffd700;font-weight:bold}
+.msg .txt{color:#b0b0c0}
+.inp{display:flex;gap:5px}
+.inp input{flex:1;padding:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#e0e0e0;border-radius:5px;font-size:.8rem}
+.inp button{padding:8px 12px;background:#ffd700;color:#0f0f1a;border:none;border-radius:5px;cursor:pointer;font-weight:bold;font-size:.75rem}
+
+.night{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:1000;flex-direction:column}
+.night.on{display:flex}
+.night .moon{font-size:3.5rem;animation:mf 3s ease-in-out infinite;margin-bottom:10px}
+@keyframes mf{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.night h2{color:#4a4a6a;font-size:2rem}
+.night p{color:#666;margin-top:6px;font-size:.9rem}
+
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:2000}
+.modal.on{display:flex}
+.modal-box{background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:25px;text-align:center;max-width:380px;width:90%}
+.modal-box .icon{font-size:2.5rem;margin-bottom:10px}
+.modal-box h2{color:#ffd700;font-size:1.2rem;margin-bottom:8px}
+.modal-box p{color:#b0b0c0;margin-bottom:14px;font-size:.85rem}
+.modal-box button{padding:10px 25px;background:#ffd700;color:#0f0f1a;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:.85rem;margin:3px}
+.modal-box button.alt{background:#4ecdc4}
+
+@media(max-width:700px){.layout{grid-template-columns:1fr}.sidebar{order:-1}}
+</style>
+</head>
+<body>
+<div class="header">
+<a href="start.html" class="logo">🎭 МАФИЯ</a>
+<div class="info">
+<div class="info-item"><div>День</div><div id="dayNum">1</div></div>
+<div class="info-item"><div>Фаза</div><div id="phaseName">День</div></div>
+<div class="info-item"><div>Живых</div><div id="aliveNum">0</div></div>
+<div class="timer" id="timer">120</div>
+</div>
+</div>
+
+<div class="layout">
+<div class="main-area">
+<div class="phase">
+<h2 id="phaseTitle">☀️ Дневное обсуждение</h2>
+<p id="phaseDesc">Обсудите с друзьями, кто может быть мафией, и сделайте свой выбор!</p>
+</div>
+<div class="table" id="table"></div>
+<div class="actions">
+<h3>🎯 Ваши действия</h3>
+<div class="btns">
+<button class="btn vote" onclick="vote()">🗳️ Голосовать</button>
+<button class="btn kill" onclick="kill()">🔪 Убить</button>
+<button class="btn heal" onclick="heal()">💊 Лечить</button>
+<button class="btn check" onclick="check()">🔍 Проверить</button>
+<button class="btn guilty" id="goGuilty" onclick="goToGuilty()">⚖️ На суд</button>
+<button class="btn skip" id="skipBtn" onclick="skipVote()">⏭️ Пропустить</button>
+</div>
+</div>
+</div>
+<div class="sidebar">
+<div class="role-card">
+<div class="role-icon-big" id="rIcon">🎭</div>
+<div class="role-name" id="rName">Загрузка...</div>
+<div class="role-desc" id="rDesc">Ожидание...</div>
+</div>
+<div class="log">
+<h3>📜 История</h3>
+<div class="log-entries" id="logEntries"><div class="log-entry"><span class="t">[День 1]</span> Игра началась!</div></div>
+</div>
+<div class="chat">
+<h3>💬 Чат игроков</h3>
+<div class="msgs" id="chatMsgs"></div>
+<div class="inp">
+<input type="text" id="chatIn" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendChat()">
+<button onclick="sendChat()">➤</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="night" id="nightOverlay">
+<div class="moon">🌙</div>
+<h2>НАСТУПАЕТ НОЧЬ...</h2>
+<p>Город засыпает...</p>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-box">
+<div class="icon" id="mIcon">💀</div>
+<h2 id="mTitle">Событие</h2>
+<p id="mText">...</p>
+<button onclick="closeModal()">Продолжить</button>
+<button class="alt" onclick="toLobby()">В лобби</button>
+</div>
+</div>
+
+<script>
+var ROLES={
+  civilian:{icon:'👤',name:'Мирный житель',desc:'Обсуждайте и ищите мафию вместе с друзьями!'},
+  mafia:{icon:'🎩',name:'Мафия',desc:'Договаривайтесь ночью с сообщниками и устраняйте мирных.'},
+  doctor:{icon:'💊',name:'Доктор',desc:'Спасайте друзей ночью!'},
+  sheriff:{icon:'⭐',name:'Комиссар',desc:'Проверяйте подозрительных игроков ночью.'},
+  don:{icon:'👑',name:'Дон мафии',desc:'Лидер мафии. Решайте, кого устранить.'}
+};
+
+var state={day:1,phase:'day',timeLeft:120,myRole:'civilian',sel:null,players:[],over:false,timer:null,votedToday:false};
+
+function init(){
+  var set={mafia:1,doc:true,sher:true,don:false,day:120,night:60};
+  try{
+    var s=JSON.parse(localStorage.getItem('mafiaSettings'));
+    if(s) set=s;
+  }catch(e){}
+
+  // Загружаем список реальных игроков
+  var loadedPlayers = [];
+  try {
+    loadedPlayers = JSON.parse(localStorage.getItem('mafiaPlayersList')) || [];
+  } catch(e){}
+
+  if(loadedPlayers.length === 0) {
+    loadedPlayers = [{id:1, name:'Вы'}];
+  }
+
+  state.players = loadedPlayers.map(function(p, idx) {
+    return {
+      id: idx + 1,
+      name: p.name || ('Игрок ' + (idx + 1)),
+      alive: true,
+      votes: 0,
+      role: 'civilian'
+    };
+  });
+
+  assignRoles(set);
+  state.myRole=state.players[0].role;
+  state.timeLeft=set.day||120;
+  
+  updateRoleCard();
+  renderTable();
+  updateAlive();
+  updatePhase();
+  startTimer();
+  
+  log('Игра началась! Игроков в комнате: ' + state.players.length);
+  var r=ROLES[state.myRole];
+  showModal(r.icon, 'Ваша роль: ' + r.name, r.desc);
+}
+
+function assignRoles(set){
+  var pc=state.players.length;
+  var mc=Math.min(set.mafia||1, Math.max(1, Math.floor(pc/3)));
+  var pool=[];
+  for(var i=0;i<mc;i++) pool.push(i===0&&(set.don||false)?'don':'mafia');
+  if(set.doc!==false&&pc>=4) pool.push('doctor');
+  if(set.sher!==false&&pc>=5) pool.push('sheriff');
+  while(pool.length<pc) pool.push('civilian');
+  
+  for(var i=pool.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=pool[i];pool[i]=pool[j];pool[j]=tmp;
+  }
+  state.players.forEach(function(p,i){p.role=pool[i];});
+}
+
+function renderTable(){
+  var t=document.getElementById('table');t.innerHTML='';
+  state.players.forEach(function(p){
+    var d=document.createElement('div');
+    d.className='seat '+(p.alive?'':'dead')+(state.sel===p.id?' sel':'');
+    d.dataset.id=p.id;
+    d.onclick=function(){
+      if(p.alive && p.id!==1){
+        state.sel=state.sel===p.id?null:p.id;
+        renderTable();
+      }
+    };
+    var show=p.id===1||!p.alive;
+    var ri=show?ROLES[p.role].icon:'';
+    d.innerHTML=(p.votes?'<div class="seat-votes">'+p.votes+'</div>':'')+(ri?'<div class="role-icon">'+ri+'</div>':'')+'<div class="seat-num">'+p.id+'</div><div class="seat-name">'+p.name+'</div><div class="seat-status">'+(p.alive?'Жив':'☠️ Мёртв')+'</div>';
+    t.appendChild(d);
+  });
+}
+
+function updateRoleCard(){
+  var r=ROLES[state.myRole];
+  document.getElementById('rIcon').textContent=r.icon;
+  document.getElementById('rName').textContent=r.name;
+  document.getElementById('rDesc').textContent=r.desc;
+}
+
+function updateAlive(){document.getElementById('aliveNum').textContent=state.players.filter(function(p){return p.alive;}).length;}
+
+function updatePhase(){
+  document.getElementById('dayNum').textContent=state.day;
+  document.getElementById('phaseName').textContent=state.phase==='day'?'День':'Ночь';
+  document.getElementById('phaseTitle').textContent=state.phase==='day'?'☀️ Дневное обсуждение':'🌙 Ночная фаза';
+  document.getElementById('phaseDesc').textContent=state.phase==='day'?'Обсудите в чате, кого отправить на суд.':'Ночной ход для специальной роли.';
+  document.querySelectorAll('.btn.kill,.btn.heal,.btn.check,.btn.guilty,.btn.skip').forEach(function(b){b.style.display='none';});
+  
+  if(state.phase==='day'){
+    document.getElementById('goGuilty').style.display='inline-block';
+    document.getElementById('skipBtn').style.display='inline-block';
+    document.querySelector('.btn.vote').style.display='inline-block';
+  } else {
+    document.querySelector('.btn.vote').style.display='none';
+    if(state.myRole==='mafia'||state.myRole==='don')document.querySelector('.btn.kill').style.display='inline-block';
+    if(state.myRole==='doctor')document.querySelector('.btn.heal').style.display='inline-block';
+    if(state.myRole==='sheriff')document.querySelector('.btn.check').style.display='inline-block';
+  }
+}
+
+function startTimer(){
+  clearInterval(state.timer);
+  state.timer=setInterval(function(){
+    state.timeLeft--;
+    var el=document.getElementById('timer');
+    el.textContent=state.timeLeft;
+    el.classList.toggle('warn',state.timeLeft<=10);
+    if(state.timeLeft<=0){
+      clearInterval(state.timer);
+      if(state.phase==='day')startNight();
+    }
+  },1000);
+}
+
+function vote(){
+  if(state.phase!=='day')return;
+  if(!state.sel){showModal('⚠️','Выберите игрока','Кликните по игроку на столе перед голосованием');return;}
+  if(state.votedToday){showModal('⚠️','Голос уже отдан','Вы уже проголосовали в этой фазе');return;}
+  
+  state.votedToday=true;
+  var t=state.players.find(function(p){return p.id===state.sel;});
+  t.votes++;
+  log('Вы отдаёте голос против ' + t.name);
+  renderTable();
+}
+
+function skipVote(){
+  if(state.phase!=='day')return;
+  state.votedToday=true;
+  log('Вы пропустили голосование');
+  renderTable();
+}
+
+function kill(){
+  if(!state.sel||state.phase!=='night')return;
+  var t=state.players.find(function(p){return p.id===state.sel;});
+  log('Мафия выбрала цель: '+t.name);
+  setTimeout(function(){resolveNight(state.sel,null);},1000);
+}
+
+function heal(){
+  if(!state.sel||state.phase!=='night')return;
+  var t=state.players.find(function(p){return p.id===state.sel;});
+  log('Доктор выбрал цель: '+t.name);
+  setTimeout(function(){resolveNight(null,state.sel);},1000);
+}
+
+function check(){
+  if(!state.sel||state.phase!=='night')return;
+  var t=state.players.find(function(p){return p.id===state.sel;});
+  var isM=t.role==='mafia'||t.role==='don';
+  showModal(isM?'🎩':'👤','Результат проверки',t.name+' — '+(isM?'МАФИЯ!':'мирный житель'));
+  setTimeout(function(){resolveNight(null,null);},2000);
+}
+
+function resolveNight(mafiaTarget,doctorTarget){
+  var victim=null,saved=false;
+  if(mafiaTarget){
+    var t=state.players.find(function(p){return p.id===mafiaTarget;});
+    if(t&&t.alive){
+      if(doctorTarget===mafiaTarget) saved=true;
+      else {t.alive=false; victim=t;}
+    }
+  }
+  
+  if(saved){
+    showModal('💊','Спасение!','Доктор успел спасти цель!');
+    log('Доктор спасает жертву! Ночью никто не погиб.');
+  } else if(victim){
+    showModal('💀','Ночная жертва',victim.name+' погибает ночью!');
+    log(victim.name+' погиб этой ночью!','d');
+  } else {
+    log('Ночь прошла тихо.');
+  }
+  
+  state.players.forEach(function(x){x.votes=0;});
+  state.votedToday=false;
+  state.sel=null;
+  renderTable();updateAlive();checkWin();
+  if(!state.over)setTimeout(startDay,2000);
+}
+
+function startNight(){
+  state.phase='night';state.timeLeft=60;state.sel=null;
+  updatePhase();renderTable();
+  document.getElementById('nightOverlay').classList.add('on');
+  setTimeout(function(){document.getElementById('nightOverlay').classList.remove('on');},2000);
+}
+
+function startDay(){
+  state.day++;state.phase='day';state.timeLeft=120;state.sel=null;state.votedToday=false;
+  updatePhase();renderTable();startTimer();
+  log('День '+state.day+' начался.');
+}
+
+function checkWin(){
+  var m=state.players.filter(function(p){return p.alive&&(p.role==='mafia'||p.role==='don');}).length;
+  var c=state.players.filter(function(p){return p.alive&&p.role!=='mafia'&&p.role!=='don';}).length;
+  if(m===0){state.over=true;clearInterval(state.timer);showModal('🏆','Победа мирных!','Все мафии вычислены!');log('Мирные выиграли!','v');}
+  else if(m>=c){state.over=true;clearInterval(state.timer);showModal('🎩','Победа мафии!','Мафия взяла контроль!');log('Мафия выиграла!','v');}
+}
+
+function goToGuilty(){
+  if(!state.sel){showModal('⚠️','Выберите игрока','Нажмите на игрока перед отправкой на суд');return;}
+  var p=state.players.find(function(x){return x.id===state.sel;});
+  if(!p||!p.alive)return;
+  localStorage.setItem('mafiaGuiltyTarget', JSON.stringify({id:p.id,name:p.name,day:state.day}));
+  window.location.href='choosing_quilty.html';
+}
+
+function toLobby(){ window.location.href='coming.html'; }
+
+function log(txt,type){
+  var c=document.getElementById('logEntries');
+  var d=document.createElement('div');
+  d.className='log-entry '+(type==='d'?'d':type==='v'?'v':'');
+  d.innerHTML='<span class="t">[День '+state.day+']</span> '+txt;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+
+function sendChat(){
+  var i=document.getElementById('chatIn');var t=i.value.trim();if(!t)return;
+  addChat('Вы',t);i.value='';
+}
+
+function addChat(who,txt){
+  var c=document.getElementById('chatMsgs');
+  var d=document.createElement('div');d.className='msg';
+  d.innerHTML='<span class="who">'+who+':</span> <span class="txt">'+txt+'</span>';
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+
+function showModal(icon,title,txt){
+  document.getElementById('mIcon').textContent=icon;
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mText').textContent=txt;
+  document.getElementById('modal').classList.add('on');
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+
+init();
+</script>
+</body>
+</html>

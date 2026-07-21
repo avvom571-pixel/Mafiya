@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мафия — Суд</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a2e,#0f1623);min-height:100vh;color:#e0e0e0}
+.header{background:rgba(0,0,0,.5);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid rgba(255,215,0,.3)}
+.logo{color:#ffd700;font-size:1.1rem;font-weight:bold;text-decoration:none}
+.info{display:flex;gap:12px;align-items:center}
+.pill{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);padding:5px 12px;border-radius:20px;font-size:.8rem;color:#ffd700}
+.timer{color:#ff6b6b;font-family:monospace;font-size:1.3rem;min-width:45px;text-align:center}
+
+.main{max-width:700px;margin:0 auto;padding:20px 16px}
+h1{color:#ffd700;text-align:center;font-size:1.5rem;margin-bottom:4px}
+p.sub{color:#888;text-align:center;margin-bottom:20px;font-size:.85rem}
+
+.target-box{background:rgba(255,255,255,.04);border:2px solid rgba(255,215,0,.3);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px}
+.target-box .num{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ffd700,#ff8c00);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;margin:0 auto 10px;color:#0f0f1a}
+.target-box .name{color:#ffd700;font-size:1.2rem;font-weight:bold;margin-bottom:4px}
+.target-box .hint{color:#888;font-size:.85rem}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.card{background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.card:hover{border-color:rgba(255,215,0,.3)}
+.card.sel{border-color:#ffd700;box-shadow:0 0 12px rgba(255,215,0,.15);background:rgba(255,215,0,.04)}
+.card-num{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:bold;margin:0 auto 6px;border:2px solid rgba(255,255,255,.15)}
+.card.sel .card-num{border-color:#ffd700}
+.card-name{font-size:.85rem;font-weight:bold;margin-bottom:3px}
+.card-votes{color:#ff6b6b;font-size:.75rem;margin-bottom:6px}
+.bar{width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.bar-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:2px;transition:width .4s}
+.vbtn{width:100%;padding:6px;background:transparent;border:1px solid #ffd700;color:#ffd700;border-radius:4px;cursor:pointer;font-size:.75rem;transition:.2s}
+.vbtn:hover{background:#ffd700;color:#0f0f1a}
+.vbtn.on{background:#ffd700;color:#0f0f1a}
+
+.results{display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;margin-bottom:16px}
+.results.on{display:block;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.results h3{color:#ffd700;text-align:center;margin-bottom:12px;font-size:1rem}
+.res-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.res-item:last-child{border:none}
+.res-name{font-size:.9rem}
+.res-votes{display:flex;gap:3px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#ffd700}
+
+.meter{display:flex;justify-content:center;align-items:center;gap:16px;margin:14px 0}
+.meter-side{text-align:center}
+.meter-label{font-size:.7rem;color:#888}
+.meter-num{font-size:1.4rem;font-weight:bold}
+.meter-num.g{color:#ff6b6b}
+.meter-num.i{color:#4ecdc4}
+.meter-bar{width:140px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;position:relative;overflow:hidden}
+.meter-fill{position:absolute;top:0;height:100%;transition:width .4s}
+.meter-fill.g{right:50%;background:#ff6b6b}
+.meter-fill.i{left:50%;background:#4ecdc4}
+
+.last{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin-bottom:14px}
+.last h4{color:#ffd700;text-align:center;margin-bottom:6px;font-size:.95rem}
+.last p{color:#b0b0c0;text-align:center;font-style:italic;font-size:.85rem}
+
+.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.abtn{padding:10px 24px;font-size:.85rem;border:2px solid;background:transparent;cursor:pointer;border-radius:6px;transition:.2s}
+.abtn.g{border-color:#ff6b6b;color:#ff6b6b}
+.abtn.g:hover{background:#ff6b6b;color:#fff}
+.abtn.i{border-color:#4ecdc4;color:#4ecdc4}
+.abtn.i:hover{background:#4ecdc4;color:#0f0f1a}
+.abtn.s{border-color:#888;color:#888}
+.abtn.s:hover{background:#888;color:#fff}
+
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;z-index:2000}
+.modal.on{display:flex}
+.modal-box{background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:24px;text-align:center;max-width:360px;width:90%}
+.modal-box .icon{font-size:2.5rem;margin-bottom:8px}
+.modal-box h2{color:#ffd700;font-size:1.2rem;margin-bottom:8px}
+.modal-box p{color:#b0b0c0;margin-bottom:14px;font-size:.85rem}
+.modal-box button{padding:10px 24px;background:#ffd700;color:#0f0f1a;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:.85rem;margin:3px}
+.modal-box button.alt{background:#4ecdc4}
+
+.back-btn{display:block;width:100%;max-width:200px;margin:20px auto 0;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#b0b0c0;border-radius:8px;cursor:pointer;text-align:center;text-decoration:none;font-size:.9rem;transition:.2s}
+.back-btn:hover{border-color:#ffd700;color:#ffd700}
+
+.ring{position:fixed;bottom:16px;right:16px;width:50px;height:50px}
+.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:3}
+.ring .bg{stroke:rgba(255,255,255,.1)}
+.ring .prog{stroke:#ffd700;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.ring text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:monospace;font-size:.85rem;color:#ffd700}
+
+@media(max-width:500px){.grid{grid-template-columns:repeat(2,1fr)}h1{font-size:1.2rem}}
+</style>
+</head>
+<body>
+<div class="header">
+<a href="start.html" class="logo">🎭 МАФИЯ</a>
+<div class="info">
+<div class="pill">День <span id="dayNum">1</span></div>
+<div class="pill">Суд</div>
+<div class="timer" id="timer">45</div>
+</div>
+</div>
+
+<div class="main">
+<h1>⚖️ Суд над игроком</h1>
+<p class="sub">Решите судьбу обвиняемого</p>
+
+<div class="target-box" id="targetBox">
+<div class="num" id="targetNum">?</div>
+<div class="name" id="targetName">Загрузка...</div>
+<div class="hint">Этот игрок был выставлен на голосование</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="results" id="results">
+<h3>📊 Результаты голосования</h3>
+<div id="resList"></div>
+<div class="meter">
+<div class="meter-side"><div class="meter-label">ВИНОВЕН</div><div class="meter-num g" id="gNum">0</div></div>
+<div class="meter-bar"><div class="meter-fill g" id="gBar" style="width:0%"></div><div class="meter-fill i" id="iBar" style="width:0%"></div></div>
+<div class="meter-side"><div class="meter-label">НЕВИНОВЕН</div><div class="meter-num i" id="iNum">0</div></div>
+</div>
+<div class="last">
+<h4>🎤 Последнее слово</h4>
+<p id="lastWord">"Я не мафия! Проверьте меня, комиссар!"</p>
+</div>
+<div class="actions">
+<button class="abtn g" onclick="voteG()">🔴 ВИНОВЕН</button>
+<button class="abtn i" onclick="voteI()">🟢 НЕВИНОВЕН</button>
+<button class="abtn s" onclick="voteS()">⚪ ВОЗДЕРЖАТЬСЯ</button>
+</div>
+</div>
+
+<a href="main.html" class="back-btn">⬅️ Вернуться к игре</a>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-box">
+<div class="icon" id="mIcon">⚖️</div>
+<h2 id="mTitle">Результат</h2>
+<p id="mText">...</p>
+<button onclick="closeM()">Продолжить</button>
+<button class="alt" onclick="toGame()">В игру</button>
+</div>
+</div>
+
+<div class="ring">
+<svg width="50" height="50"><circle class="bg" cx="25" cy="25" r="22"/><circle class="prog" cx="25" cy="25" r="22" stroke-dasharray="138.23" stroke-dashoffset="0" id="progCirc"/></svg>
+<text x="25" y="28" text-anchor="middle" id="ringText">45</text>
+</div>
+
+<script>
+var players=[],sel=null,voted=false,time=45,gVotes=0,iVotes=0,timer=null;
+var targetPlayer=null;
+
+function init(){
+  // Load target from main game
+  try{
+    var t=JSON.parse(localStorage.getItem('mafiaGuiltyTarget'));
+    if(t){targetPlayer=t;document.getElementById('targetNum').textContent=t.id;document.getElementById('targetName').textContent=t.name;document.getElementById('dayNum').textContent=t.day||1;}
+  }catch(e){}
+  if(!targetPlayer){targetPlayer={id:2,name:'Игрок 2'};document.getElementById('targetNum').textContent='2';document.getElementById('targetName').textContent='Игрок 2';}
+
+  // Generate other players for voting simulation
+  var totalPlayers=6;
+  try{var s=JSON.parse(localStorage.getItem('mafiaSettings'));if(s&&s.players)totalPlayers=s.players;}catch(e){}
+  for(var i=1;i<=totalPlayers;i++){
+    if(i===targetPlayer.id)continue;
+    players.push({id:i,name:'Игрок '+i,votes:0,total:totalPlayers-1});
+  }
+  render();startT();
+}
+
+function render(){
+  var g=document.getElementById('grid');g.innerHTML='';
+  players.forEach(function(p){
+    var d=document.createElement('div');
+    d.className='card '+(sel===p.id?'sel':'');
+    d.onclick=function(){if(!voted){sel=sel===p.id?null:p.id;render();}};
+    var pct=Math.round(p.votes/p.total*100)||0;
+    d.innerHTML='<div class="card-num">'+p.id+'</div><div class="card-name">'+p.name+'</div><div class="card-votes">'+p.votes+' голосов</div><div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div><button class="vbtn '+(sel===p.id?'on':'')+'" onclick="event.stopPropagation();pick('+p.id+')">'+(sel===p.id?'✓ Выбран':'Выбрать')+'</button>';
+    g.appendChild(d);
+  });
+}
+
+function pick(id){
+  if(voted)return;
+  sel=id;voted=true;render();
+  // Simulate other votes
+  players.forEach(function(p){if(p.id!==id)p.votes+=Math.floor(Math.random()*2);});
+  setTimeout(showRes,800);
+}
+
+function showRes(){
+  document.getElementById('grid').style.display='none';
+  document.querySelector('.sub').textContent='Решает суд — виновен или нет?';
+  document.getElementById('results').classList.add('on');
+  var list=document.getElementById('resList');list.innerHTML='';
+  var sorted=[].concat(players).sort(function(a,b){return b.votes-a.votes;});
+  sorted.forEach(function(p){
+    var d=document.createElement('div');d.className='res-item';
+    d.innerHTML='<span class="res-name">'+p.name+'</span><div class="res-votes">'+Array(Math.min(p.votes,10)).fill('<div class="dot"></div>').join('')+'<span style="color:#ffd700;font-weight:bold;margin-left:4px">'+p.votes+'</span></div>';
+    list.appendChild(d);
+  });
+  time=30;startT();
+}
+
+function voteG(){gVotes++;updateM();checkF();}
+function voteI(){iVotes++;updateM();checkF();}
+function voteS(){updateM();checkF();}
+
+function updateM(){
+  var t=gVotes+iVotes+1;
+  document.getElementById('gNum').textContent=gVotes;
+  document.getElementById('iNum').textContent=iVotes;
+  document.getElementById('gBar').style.width=(gVotes/t*100)+'%';
+  document.getElementById('iBar').style.width=(iVotes/t*100)+'%';
+}
+
+function checkF(){
+  // Simulate bot votes
+  for(var i=0;i<5;i++)if(Math.random()<.4)gVotes++;else if(Math.random()<.8)iVotes++;
+  updateM();
+  setTimeout(function(){
+    var guilty=gVotes>iVotes;
+    showModal(guilty?'🔴':'🟢',guilty?'ВИНОВЕН!':'НЕВИНОВЕН!',guilty?'Игрок '+targetPlayer.name+' признан виновным и будет выгнан.':'Игрок '+targetPlayer.name+' признан невиновным и остаётся в игре.');
+  },800);
+}
+
+function startT(){
+  clearInterval(timer);
+  timer=setInterval(function(){
+    time--;
+    document.getElementById('timer').textContent=time;
+    document.getElementById('ringText').textContent=time;
+    var circ=2*Math.PI*22;
+    document.getElementById('progCirc').style.strokeDashoffset=circ-(time/45)*circ;
+    if(time<=0){clearInterval(timer);if(!voted)voteS();}
+  },1000);
+}
+
+function showModal(icon,title,txt){
+  document.getElementById('mIcon').textContent=icon;
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mText').textContent=txt;
+  document.getElementById('modal').classList.add('on');
+}
+function closeM(){document.getElementById('modal').classList.remove('on');}
+
+function toGame(){
+  window.location.href='main.html';
+}
+
+init();
+</script>
+</body>
+</html>

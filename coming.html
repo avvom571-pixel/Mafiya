@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мафия — Лобби</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a2e,#0f1623);min-height:100vh;color:#e0e0e0}
+.header{background:rgba(0,0,0,.5);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,215,0,.2);flex-wrap:wrap;gap:10px}
+.logo{color:#ffd700;font-size:1.2rem;font-weight:bold;text-decoration:none}
+.code-box{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);padding:8px 16px;border-radius:8px;display:flex;align-items:center;gap:10px}
+.code-box span{color:#ffd700;font-family:monospace;font-size:1.2rem;letter-spacing:3px}
+.code-box button{background:transparent;border:1px solid rgba(255,215,0,.3);color:#ffd700;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.8rem}
+.code-box button:hover{background:rgba(255,215,0,.15)}
+
+.main{max-width:700px;margin:0 auto;padding:24px 16px}
+
+.status{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.pill{padding:6px 14px;border-radius:20px;font-size:.8rem}
+.pill.on{background:rgba(78,205,196,.1);border:1px solid rgba(78,205,196,.3);color:#4ecdc4}
+.pill.wa{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);color:#ffd700}
+
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:20px}
+.slot{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;text-align:center;transition:.2s;position:relative}
+.slot:hover{border-color:rgba(255,215,0,.2)}
+.slot.host{border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.04)}
+.slot.ready{border-color:rgba(78,205,196,.3)}
+.slot.empty{border-style:dashed;opacity:.4}
+.slot-num{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:bold;margin:0 auto 6px;border:2px solid rgba(255,255,255,.15)}
+.slot.host .slot-num{background:linear-gradient(135deg,#ffd700,#ff8c00);border-color:#ffd700}
+.slot.ready .slot-num{border-color:#4ecdc4}
+.slot-name{font-size:.85rem;font-weight:bold}
+.slot-status{font-size:.75rem;color:#888;margin-top:2px}
+.tag{position:absolute;top:6px;right:6px;font-size:.65rem;padding:2px 6px;border-radius:6px;font-weight:bold}
+.tag.host{background:#ffd700;color:#0f0f1a}
+.tag.ready{background:#4ecdc4;color:#0f0f1a}
+
+.settings{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:18px;margin-bottom:16px}
+.settings h3{color:#ffd700;text-align:center;margin-bottom:12px;font-size:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(255,255,255,.03);border-radius:6px}
+.item label{color:#b0b0c0;font-size:.85rem}
+.item input{width:60px;padding:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#ffd700;border-radius:4px;text-align:center;font-size:.85rem}
+.toggle{width:40px;height:22px;background:rgba(255,255,255,.1);border-radius:11px;position:relative;cursor:pointer;transition:.2s}
+.toggle.on{background:#ffd700}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.2s}
+.toggle.on::after{transform:translateX(18px)}
+
+.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.btn{padding:12px 28px;font-size:.9rem;border:1px solid #ffd700;background:transparent;color:#ffd700;cursor:pointer;border-radius:6px;transition:.2s}
+.btn:hover{background:#ffd700;color:#0f0f1a}
+.btn-prim{background:linear-gradient(45deg,#ffd700,#ff8c00);color:#0f0f1a;border:none}
+.btn-prim:hover{opacity:.9}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+
+.share{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.sbtn{padding:8px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#b0b0c0;border-radius:6px;cursor:pointer;font-size:.8rem;transition:.2s}
+.sbtn:hover{border-color:#ffd700;color:#ffd700}
+
+.chat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin-top:16px}
+.chat h3{color:#ffd700;font-size:.95rem;margin-bottom:8px}
+.msgs{height:120px;overflow-y:auto;margin-bottom:8px;padding:6px;background:rgba(0,0,0,.2);border-radius:6px;font-size:.85rem}
+.msg{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.msg .who{color:#ffd700;font-weight:bold}
+.msg .txt{color:#b0b0c0}
+.inp{display:flex;gap:6px}
+.inp input{flex:1;padding:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#e0e0e0;border-radius:6px;font-size:.85rem}
+.inp button{padding:10px 16px;background:#ffd700;color:#0f0f1a;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:.85rem}
+
+@media(max-width:500px){.players{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="header">
+<a href="start.html" class="logo">🎭 МАФИЯ</a>
+<div class="code-box">
+<span>КОД:</span>
+<span id="roomCode">------</span>
+<button id="copyBtn">📋 Копировать</button>
+</div>
+</div>
+
+<div class="main">
+<div class="status">
+<div class="pill on">🟢 Онлайн</div>
+<div class="pill wa" id="waitPill">⏳ Ожидание игроков</div>
+</div>
+
+<h3 style="color:#ffd700;text-align:center;margin-bottom:12px">👥 Игроки в комнате</h3>
+<div class="players" id="playersGrid"></div>
+
+<div class="settings">
+<h3>⚙️ Настройки игры</h3>
+<div class="grid">
+<div class="item"><label>Мафий</label><input type="number" id="mafia" value="1" min="1" max="5"></div>
+<div class="item"><label>Доктор</label><div class="toggle on" id="doc"></div></div>
+<div class="item"><label>Комиссар</label><div class="toggle on" id="sher"></div></div>
+<div class="item"><label>Дон мафии</label><div class="toggle" id="don"></div></div>
+<div class="item"><label>Время дня (сек)</label><input type="number" id="dayT" value="120" min="30" max="300"></div>
+<div class="item"><label>Время ночи (сек)</label><input type="number" id="nightT" value="60" min="15" max="120"></div>
+</div>
+</div>
+
+<div class="actions">
+<button class="btn" id="leaveBtn">🚪 Выйти</button>
+<button class="btn" id="readyBtn">✅ Готов</button>
+<button class="btn btn-prim" id="startBtn" disabled>🚀 Начать</button>
+</div>
+
+<div class="share">
+<button class="sbtn" id="linkBtn">🔗 Ссылка</button>
+<button class="sbtn" id="tgBtn">📱 Telegram</button>
+<button class="sbtn" id="waBtn">💬 WhatsApp</button>
+</div>
+
+<div class="chat">
+<h3>💬 Чат лобби</h3>
+<div class="msgs" id="msgs">
+<div class="msg"><span class="who">Система:</span> <span class="txt">Отправьте ссылку или код друзьям, чтобы они присоединились!</span></div>
+</div>
+<div class="inp">
+<input type="text" id="chatIn" placeholder="Сообщение...">
+<button id="sendBtn">➤</button>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+  var room = '', isHost = false;
+  // Список только реальных игроков
+  var myName = localStorage.getItem('mafiaName') || 'Игрок 1';
+  var players = [{id:1, name: myName, ready: true, host: false}];
+  var meReady = true;
+
+  function init() {
+    var params = new URLSearchParams(window.location.search);
+    var joinCode = params.get('join');
+    if(joinCode) {
+      room = joinCode.toUpperCase();
+      isHost = false;
+      localStorage.setItem('mafiaRoom', room);
+      localStorage.setItem('mafiaHost', 'false');
+    } else {
+      room = localStorage.getItem('mafiaRoom') || '------';
+      isHost = localStorage.getItem('mafiaHost') === 'true';
+    }
+
+    document.getElementById('roomCode').textContent = room;
+    players[0].host = isHost;
+
+    loadSettings();
+    render();
+
+    if(isHost) {
+      addMsg('Система', 'Вы создали комнату ' + room + '. Ждём подключения друзей!');
+    } else {
+      addMsg('Система', 'Вы присоединились к комнате ' + room);
+    }
+  }
+
+  function render() {
+    var g = document.getElementById('playersGrid');
+    g.innerHTML = '';
+    
+    // Отрисовка реальных участников
+    players.forEach(function(p) {
+      var d = document.createElement('div');
+      d.className = 'slot ' + (p.host ? 'host ' : '') + (p.ready ? 'ready ' : '');
+      d.innerHTML = (p.host ? '<span class="tag host">ХОСТ</span>' : '') +
+        (p.ready ? '<span class="tag ready">ГОТОВ</span>' : '') +
+        '<div class="slot-num">' + p.id + '</div>' +
+        '<div class="slot-name">' + p.name + '</div>' +
+        '<div class="slot-status">' + (p.ready ? 'Готов' : 'Ожидание') + '</div>';
+      g.appendChild(d);
+    });
+
+    // Пустые слоты до 10 человек
+    for(var i = players.length; i < 10; i++) {
+      var d = document.createElement('div'); d.className = 'slot empty';
+      d.innerHTML = '<div class="slot-num" style="background:rgba(255,255,255,.05);font-size:1rem">+</div><div class="slot-name">Свободно</div><div class="slot-status">Ждём друга</div>';
+      g.appendChild(d);
+    }
+    updateBtn();
+    document.getElementById('waitPill').textContent = '👥 В комнате: ' + players.length + ' чел.';
+  }
+
+  function updateBtn() {
+    var b = document.getElementById('startBtn');
+    var allReady = players.every(function(p){ return p.ready; });
+    
+    if(!isHost) {
+      b.style.display = 'none';
+      return;
+    }
+    b.style.display = 'inline-block';
+    
+    if(players.length < 2) {
+      b.disabled = true;
+      b.textContent = '🚀 Нужно ещё игроков (' + players.length + '/2)';
+    } else if(!allReady) {
+      b.disabled = true;
+      b.textContent = '🚀 Ждём готовности остальных';
+    } else {
+      b.disabled = false;
+      b.textContent = '🚀 Начать игру';
+    }
+  }
+
+  document.getElementById('readyBtn').addEventListener('click', function() {
+    meReady = !meReady;
+    players[0].ready = meReady;
+    this.textContent = meReady ? '✅ Готов' : '⏳ Не готов';
+    render();
+  });
+
+  document.querySelectorAll('.toggle').forEach(function(t) {
+    t.addEventListener('click', function() {
+      if(!isHost) return;
+      this.classList.toggle('on');
+      save();
+    });
+  });
+
+  document.querySelectorAll('.settings input[type="number"]').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      if(!isHost) return;
+      save();
+    });
+  });
+
+  function save() {
+    var s = {
+      playersCount: players.length,
+      mafia: parseInt(document.getElementById('mafia').value) || 1,
+      doc: document.getElementById('doc').classList.contains('on'),
+      sher: document.getElementById('sher').classList.contains('on'),
+      don: document.getElementById('don').classList.contains('on'),
+      day: parseInt(document.getElementById('dayT').value) || 120,
+      night: parseInt(document.getElementById('nightT').value) || 60
+    };
+    localStorage.setItem('mafiaSettings', JSON.stringify(s));
+    localStorage.setItem('mafiaPlayersList', JSON.stringify(players));
+  }
+
+  function loadSettings() {
+    try {
+      var s = JSON.parse(localStorage.getItem('mafiaSettings'));
+      if(s) {
+        if(s.mafia) document.getElementById('mafia').value = s.mafia;
+        if(s.day) document.getElementById('dayT').value = s.day;
+        if(s.night) document.getElementById('nightT').value = s.night;
+        if(s.doc !== undefined) document.getElementById('doc').classList.toggle('on', s.doc);
+        if(s.sher !== undefined) document.getElementById('sher').classList.toggle('on', s.sher);
+        if(s.don !== undefined) document.getElementById('don').classList.toggle('on', s.don);
+      }
+    } catch(e) {}
+    if(!isHost) {
+      document.querySelectorAll('.settings input, .settings .toggle').forEach(function(el) {
+        el.style.opacity = '0.5';
+        el.style.pointerEvents = 'none';
+      });
+    }
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    var c = document.getElementById('roomCode').textContent;
+    navigator.clipboard.writeText(c).then(function() {
+      var b = document.getElementById('copyBtn'); 
+      b.textContent = 'Скопировано!';
+      setTimeout(function(){ b.textContent = '📋 Копировать'; }, 1500);
+    });
+  });
+
+  document.getElementById('linkBtn').addEventListener('click', function() {
+    var c = document.getElementById('roomCode').textContent;
+    var l = window.location.origin + window.location.pathname.replace('coming.html','start.html') + '?join=' + c;
+    navigator.clipboard.writeText(l).then(function(){ alert('Ссылка на комнату скопирована!'); });
+  });
+
+  document.getElementById('tgBtn').addEventListener('click', function() {
+    var c = document.getElementById('roomCode').textContent;
+    window.open('https://t.me/share/url?text=' + encodeURIComponent('Привет! Присоединяйся к игре в Мафию, код комнаты: ' + c), '_blank');
+  });
+
+  document.getElementById('waBtn').addEventListener('click', function() {
+    var c = document.getElementById('roomCode').textContent;
+    window.open('https://wa.me/?text=' + encodeURIComponent('Привет! Присоединяйся к игре в Мафию, код комнаты: ' + c), '_blank');
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', send);
+  document.getElementById('chatIn').addEventListener('keypress', function(e) { if(e.key === 'Enter') send(); });
+  
+  function send() {
+    var i = document.getElementById('chatIn');
+    var t = i.value.trim(); if(!t) return;
+    addMsg('Вы', t); i.value = '';
+  }
+
+  function addMsg(who, txt) {
+    var c = document.getElementById('msgs');
+    var d = document.createElement('div'); d.className = 'msg';
+    d.innerHTML = '<span class="who">' + who + ':</span> <span class="txt">' + txt + '</span>';
+    c.appendChild(d); c.scrollTop = c.scrollHeight;
+  }
+
+  document.getElementById('startBtn').addEventListener('click', function() {
+    if(players.length < 4 || !players.every(function(p){ return p.ready; })) return;
+    save();
+    window.location.href = 'main.html';
+  });
+
+  document.getElementById('leaveBtn').addEventListener('click', function() {
+    if(confirm('Выйти из комнаты?')) {
+      localStorage.removeItem('mafiaRoom');
+      localStorage.removeItem('mafiaHost');
+      window.location.href = 'index.html';
+    }
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
