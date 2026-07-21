@@ -13,12 +13,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 .code-box span{color:#ffd700;font-family:monospace;font-size:1.2rem;letter-spacing:3px}
 
 .main{max-width:700px;margin:0 auto;padding:24px 16px}
-.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:20px}
-.slot{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;text-align:center;position:relative}
-.slot.ready{border-color:#4ecdc4}
-.slot-name{font-size:.85rem;font-weight:bold;margin-top:6px}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:24px}
+.slot{background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:16px;text-align:center}
+.slot-name{font-size:.9rem;font-weight:bold;margin-top:6px;color:#ffd700}
 
-.actions{display:flex;justify-content:center;gap:10px;margin-bottom:16px}
+.actions{display:flex;justify-content:center;gap:12px}
 .btn{padding:12px 28px;font-size:.9rem;border:1px solid #ffd700;background:transparent;color:#ffd700;cursor:pointer;border-radius:6px}
 .btn-prim{background:linear-gradient(45deg,#ffd700,#ff8c00);color:#0f0f1a;border:none;font-weight:bold}
 .btn:disabled{opacity:.3;cursor:not-allowed}
@@ -26,7 +25,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBTD1Y1Bx-dnpGW8vhPEooCQYfwwl1J7gc",
@@ -45,74 +44,102 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
   const myName = localStorage.getItem('mafiaName') || 'Игрок';
   const isHost = localStorage.getItem('mafiaHost') === 'true';
 
-  let myKey = null;
-
   document.getElementById('roomCode').textContent = room;
 
-  // Регистрация игрока в комнате
-  const playerRef = ref(db, `rooms/${room}/players/${Date.now()}_${Math.floor(Math.random()*1000)}`);
-  myKey = playerRef.key;
-
-  set(playerRef, {
+  // Использование имени как ключа, чтобы не плодить дубликаты
+  const myPlayerRef = ref(db, `rooms/${room}/players/${myName}`);
+  
+  // Добавляем текущего игрока в комнату
+  set(myPlayerRef, {
     name: myName,
-    ready: true,
-    host: isHost
+    host: isHost,
+    role: 'pending' // Роль назначится при старте
   });
 
-  // Автоматически удалять при закрытии вкладки
-  window.addEventListener('beforeunload', () => {
-    remove(playerRef);
-  });
-
-  // Отслеживание игроков онлайн
+  // Слушаем изменения всей комнаты в реальном времени
   const roomRef = ref(db, `rooms/${room}`);
   onValue(roomRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
 
+    // Переход в игру, когда статус меняется на 'started'
     if (data.status === 'started') {
       window.location.href = 'main.html';
       return;
     }
 
+    // Отрисовка списка игроков онлайн
     const playersGrid = document.getElementById('playersGrid');
     playersGrid.innerHTML = '';
 
-    const playersList = data.players ? Object.values(data.players) : [];
+    const playersObj = data.players || {};
+    const playersList = Object.values(playersObj);
 
-    playersList.forEach((p, idx) => {
+    playersList.forEach((p) => {
       const d = document.createElement('div');
-      d.className = 'slot ready';
+      d.className = 'slot';
       d.innerHTML = `
-        <div style="font-size:1.2rem">👤</div>
+        <div style="font-size:1.8rem">👤</div>
         <div class="slot-name">${p.name} ${p.host ? '👑' : ''}</div>
       `;
       playersGrid.appendChild(d);
     });
 
+    // Кнопка запуска видна только Хосту
     const startBtn = document.getElementById('startBtn');
     if (isHost) {
       startBtn.style.display = 'inline-block';
-      startBtn.disabled = playersList.length < 2; // Можно начать, если есть минимум 2 игрока
+      startBtn.disabled = playersList.length < 2; // Нужно минимум 2 игрока для теста
     } else {
       startBtn.style.display = 'none';
     }
   });
 
+  // Распределение ролей и старт игры
   window.startGame = function() {
-    set(ref(db, `rooms/${room}/status`), 'started');
+    onValue(ref(db, `rooms/${room}/players`), (snapshot) => {
+      const playersObj = snapshot.val();
+      if (!playersObj) return;
+
+      const keys = Object.keys(playersObj);
+      const total = keys.length;
+
+      // Перемешиваем игроков
+      const shuffled = [...keys].sort(() => Math.random() - 0.5);
+
+      // Логика распределения ролей:
+      // 1 Мафия, 1 Комиссар (если >= 4 игроков), остальные — Мирные
+      const updates = {};
+      
+      shuffled.forEach((playerKey, index) => {
+        let assignedRole = 'мирный'; // По умолчанию ВСЕ мирные
+
+        if (index === 0) {
+          assignedRole = 'мафия'; // Только 1-й игрок становится мафией
+        } else if (index === 1 && total >= 4) {
+          assignedRole = 'комиссар'; // 2-й игрок комиссар (при 4+ игроках)
+        }
+
+        updates[`rooms/${room}/players/${playerKey}/role`] = assignedRole;
+      });
+
+      updates[`rooms/${room}/status`] = 'started';
+
+      // Обновляем роли и старт в базе данных
+      update(ref(db), updates);
+    }, { onlyOnce: true });
   };
 
   window.leaveGame = function() {
-    remove(playerRef).then(() => {
-      window.location.href = 'index.html';
+    set(myPlayerRef, null).then(() => {
+      window.location.href = 'start.html';
     });
   };
 </script>
 </head>
 <body>
 <div class="header">
-<a href="index.html" class="logo">🎭 МАФИЯ</a>
+<a href="start.html" class="logo">🎭 МАФИЯ</a>
 <div class="code-box">
 <span>КОД:</span>
 <span id="roomCode">------</span>
@@ -120,7 +147,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 </div>
 
 <div class="main">
-<h3 style="color:#ffd700;text-align:center;margin-bottom:12px">👥 Игроки в комнате</h3>
+<h3 style="color:#ffd700;text-align:center;margin-bottom:16px">👥 Игроки в лобби</h3>
 <div class="players" id="playersGrid"></div>
 
 <div class="actions">
