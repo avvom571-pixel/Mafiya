@@ -44,31 +44,37 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
   const myName = localStorage.getItem('mafiaName') || 'Игрок';
   const isHost = localStorage.getItem('mafiaHost') === 'true';
 
-  document.getElementById('roomCode').textContent = room;
+  // Создаём постоянный уникальный ID игрока для сессии
+  let myId = localStorage.getItem('mafiaUserId');
+  if (!myId) {
+    myId = 'user_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('mafiaUserId', myId);
+  }
 
-  // Использование имени как ключа, чтобы не плодить дубликаты
-  const myPlayerRef = ref(db, `rooms/${room}/players/${myName}`);
-  
-  // Добавляем текущего игрока в комнату
+  document.getElementById('roomCode').textContent = room || 'ОШИБКА';
+
+  // Сохраняем игрока по уникальному ID
+  const myPlayerRef = ref(db, `rooms/${room}/players/${myId}`);
   set(myPlayerRef, {
+    id: myId,
     name: myName,
     host: isHost,
-    role: 'pending' // Роль назначится при старте
+    role: 'pending'
   });
 
-  // Слушаем изменения всей комнаты в реальном времени
+  // Отслеживаем изменения в лобби
   const roomRef = ref(db, `rooms/${room}`);
   onValue(roomRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
 
-    // Переход в игру, когда статус меняется на 'started'
+    // Переход к игре
     if (data.status === 'started') {
       window.location.href = 'main.html';
       return;
     }
 
-    // Отрисовка списка игроков онлайн
+    // Отображаем ВСЕХ подключённых игроков
     const playersGrid = document.getElementById('playersGrid');
     playersGrid.innerHTML = '';
 
@@ -85,47 +91,47 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
       playersGrid.appendChild(d);
     });
 
-    // Кнопка запуска видна только Хосту
+    // Управление кнопкой «Начать»
     const startBtn = document.getElementById('startBtn');
     if (isHost) {
       startBtn.style.display = 'inline-block';
-      startBtn.disabled = playersList.length < 2; // Нужно минимум 2 игрока для теста
+      // Кнопка нажимается, только когда в комнате ХОТЯ БЫ 2 человека
+      startBtn.disabled = playersList.length < 2; 
     } else {
       startBtn.style.display = 'none';
     }
   });
 
-  // Распределение ролей и старт игры
+  // Функция старта и раздачи ролей
   window.startGame = function() {
     onValue(ref(db, `rooms/${room}/players`), (snapshot) => {
       const playersObj = snapshot.val();
       if (!playersObj) return;
 
-      const keys = Object.keys(playersObj);
-      const total = keys.length;
+      const playerIds = Object.keys(playersObj);
+      
+      // Перемешиваем список ID случайным образом
+      const shuffledIds = [...playerIds].sort(() => Math.random() - 0.5);
 
-      // Перемешиваем игроков
-      const shuffled = [...keys].sort(() => Math.random() - 0.5);
-
-      // Логика распределения ролей:
-      // 1 Мафия, 1 Комиссар (если >= 2 игроков), остальные — Мирные
       const updates = {};
       
-      shuffled.forEach((playerKey, index) => {
-        let assignedRole = 'мирный'; // По умолчанию ВСЕ мирные
-
+      // ЧЁТКОЕ РАСПРЕДЕЛЕНИЕ:
+      // 1-й в перемешанном списке = МАФИЯ
+      // 2-й (и последующие) = МИРНЫЙ ЖИТЕЛЬ
+      shuffledIds.forEach((id, index) => {
+        let role = 'мирный';
         if (index === 0) {
-          assignedRole = 'мафия'; // Только 1-й игрок становится мафией
-        } else if (index === 1 && total >= 2) {
-          assignedRole = 'комиссар'; // 2-й игрок комиссар (при 4+ игроках)
+          role = 'мафия';
+        } else if (index === 1 && shuffledIds.length >= 4) {
+          role = 'комиссар'; // При 4+ игроках второй станет комиссаром
         }
-
-        updates[`rooms/${room}/players/${playerKey}/role`] = assignedRole;
+        
+        updates[`rooms/${room}/players/${id}/role`] = role;
       });
 
       updates[`rooms/${room}/status`] = 'started';
 
-      // Обновляем роли и старт в базе данных
+      // Применяем настройки ко всей комнате
       update(ref(db), updates);
     }, { onlyOnce: true });
   };
